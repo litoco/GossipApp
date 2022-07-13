@@ -17,7 +17,10 @@ fun AssembleSendMessageRow(
 ) {
     Row (modifier = Modifier.height(IntrinsicSize.Min).padding(6.dp), verticalAlignment = Alignment.Bottom) {
         SendPicButton()
-        SendMessageTextButton(modifier = Modifier.weight(1f), messageDetailsList = messageDetailsList, messageScrollToPosition = messageScrollToPosition,
+        SendMessageTextButton(
+            modifier = Modifier.weight(1f),
+            messageDetailsList = messageDetailsList,
+            listScrollStateHolder = messageScrollToPosition,
             scope = scope)
     }
 }

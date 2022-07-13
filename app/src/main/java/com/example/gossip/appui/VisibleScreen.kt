@@ -3,10 +3,14 @@ package com.example.gossip.appui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
@@ -44,15 +48,24 @@ private fun GetChatScreen() {
             )
         }
     ) {
-        Column {
+        Column (
+            modifier = Modifier.fillMaxSize(1f)
+                ) {
             Box(modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(1f)
                 .background(MaterialTheme.colors.background),
                 contentAlignment = Alignment.TopCenter) {
-                AssembleChatMessages(messageDetailsList = messagesDetailsList, messageScrollToPosition = messageScrolledToPosition)
+                AssembleChatMessages(
+                    messageDetailsList = messagesDetailsList,
+                    messageScrollToPosition = messageScrolledToPosition
+                )
             }
-            AssembleSendMessageRow(messageDetailsList = messagesDetailsList, messageScrollToPosition = messageScrolledToPosition, scope = scope)
+            AssembleSendMessageRow(
+                messageDetailsList = messagesDetailsList,
+                messageScrollToPosition = messageScrolledToPosition,
+                scope = scope
+            )
         }
     }
 }

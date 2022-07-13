@@ -6,7 +6,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 
 @Composable
-fun AssembleChatMessages(messageDetailsList: MutableList<MessageDetails>, messageScrollToPosition:LazyListState) {
+fun AssembleChatMessages(
+    messageDetailsList: MutableList<MessageDetails>,
+    messageScrollToPosition: LazyListState
+) {
 
     LazyColumn (state = messageScrollToPosition) {
         items(messageDetailsList) {
