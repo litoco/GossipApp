@@ -1,4 +1,4 @@
-package com.example.gossip.appui.chatscreen
+package com.example.gossip.appui.chatmessagescreen
 
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState

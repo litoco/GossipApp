@@ -1,4 +1,4 @@
-package com.example.gossip.appui.chatscreen
+package com.example.gossip.appui.chatmessagescreen
 
 import com.example.gossip.R
 

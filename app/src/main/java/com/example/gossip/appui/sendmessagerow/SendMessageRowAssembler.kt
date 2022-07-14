@@ -6,7 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.gossip.appui.chatscreen.MessageDetails
+import com.example.gossip.appui.chatmessagescreen.MessageDetails
 import kotlinx.coroutines.CoroutineScope
 
 @Composable

@@ -1,4 +1,4 @@
-package com.example.gossip.appui.chatscreen
+package com.example.gossip.appui.chatmessagescreen
 
 import android.content.res.Configuration
 import androidx.compose.foundation.Image

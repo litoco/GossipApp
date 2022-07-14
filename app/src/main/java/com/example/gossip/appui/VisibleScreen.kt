@@ -14,7 +14,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.example.gossip.appui.chatscreen.AssembleChatMessages
+import com.example.gossip.appui.chatmessagescreen.AssembleChatMessages
 import com.example.gossip.appui.navigationdrawer.AssembledDrawer
 import com.example.gossip.appui.sendmessagerow.AssembleSendMessageRow
 import com.example.gossip.appui.topappbar.AssembleTopBar

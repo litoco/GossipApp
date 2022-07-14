@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
@@ -27,8 +26,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gossip.R
-import com.example.gossip.appui.chatscreen.MessageDetails
-import com.example.gossip.appui.chatscreen.SentMessageDetails
+import com.example.gossip.appui.chatmessagescreen.MessageDetails
+import com.example.gossip.appui.chatmessagescreen.SentMessageDetails
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,9 +46,9 @@ fun SendMessageTextButton(
 
     val wasKeyboardVisible = remember{ mutableStateOf(false)}
     val lastVisibleItemIndex = remember{ mutableStateOf(0)}
-    val listItemAbsoluteSize = remember { (1..messageDetailsList.size).map { 0 }.toMutableList()}
+    val listItemAbsoluteSizeList = remember { (1..messageDetailsList.size).map { 0 }.toMutableList()}
 
-    rememberIsKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible, lastVisibleItemIndex, listItemAbsoluteSize)
+    rememberIsKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible, lastVisibleItemIndex, listItemAbsoluteSizeList)
 
     val trailingIconView = @Composable {
         IconButton(onClick = {
@@ -64,6 +63,7 @@ fun SendMessageTextButton(
             messageDetailsList.add(currentMessageDetails)
             scope.launch {
                 listScrollStateHolder.animateScrollToItem(messageDetailsList.size-1)
+                listItemAbsoluteSizeList.add(listScrollStateHolder.layoutInfo.visibleItemsInfo[listScrollStateHolder.layoutInfo.visibleItemsInfo.size-1].size)
             }
             text = ""
         }) {
@@ -87,10 +87,7 @@ fun SendMessageTextButton(
                 width = 0.5.dp,
                 color = MaterialTheme.colors.onPrimary,
                 shape = RoundedCornerShape(corner = CornerSize(6.dp))
-            )
-            .onFocusChanged {
-                if (!it.hasFocus) text = ""
-            },
+            ),
             shape = RoundedCornerShape(corner = CornerSize(6.dp)), value = text, onValueChange = { text = it},
             placeholder = { Text(text = "Type something...")},
             maxLines = 4,
@@ -126,7 +123,8 @@ fun View.isKeyboardOpen(
                 isKeyboardVisibleBefore.value = true
             }
             lastVisibleItemIndex.value = visibleItemList[visibleItemList.size-1].index
-            listItemAbsoluteSizeList[visibleItemList[visibleItemList.size-1].index] = visibleItemList[visibleItemList.size-1].size
+            if (lastVisibleItemIndex.value < visibleItemList.size)
+                listItemAbsoluteSizeList[visibleItemList[visibleItemList.size-1].index] = visibleItemList[visibleItemList.size-1].size
         } else {
             if (isKeyboardVisibleBefore.value) {
                 var scrollOffset = 0
@@ -150,18 +148,15 @@ fun rememberIsKeyboardOpen(
     listScrollStateHolder: LazyListState,
     wasKeyboardVisible: MutableState<Boolean>,
     lastVisibleItemIndex: MutableState<Int>,
-    listItemSize: MutableList<Int>
+    listItemAbsoluteSizeList: MutableList<Int>
 ): State<Boolean> {
     val view = LocalView.current
 
-    return produceState(initialValue = view.isKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible, lastVisibleItemIndex, listItemSize)) {
+    return produceState(initialValue = view.isKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible,
+        lastVisibleItemIndex, listItemAbsoluteSizeList)) {
         val viewTreeObserver = view.viewTreeObserver
-        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.isKeyboardOpen(
-            scope,
-            listScrollStateHolder,
-            wasKeyboardVisible, lastVisibleItemIndex, listItemSize
-        )
-        }
+        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.isKeyboardOpen(scope, listScrollStateHolder,
+            wasKeyboardVisible, lastVisibleItemIndex, listItemAbsoluteSizeList) }
         viewTreeObserver.addOnGlobalLayoutListener(listener)
 
         awaitDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener)  }

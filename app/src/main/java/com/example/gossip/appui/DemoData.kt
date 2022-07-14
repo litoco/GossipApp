@@ -1,9 +1,9 @@
 package com.example.gossip.appui
 
 import com.example.gossip.R
-import com.example.gossip.appui.chatscreen.MessageDetails
-import com.example.gossip.appui.chatscreen.ReceivedMessageDetails
-import com.example.gossip.appui.chatscreen.SentMessageDetails
+import com.example.gossip.appui.chatmessagescreen.MessageDetails
+import com.example.gossip.appui.chatmessagescreen.ReceivedMessageDetails
+import com.example.gossip.appui.chatmessagescreen.SentMessageDetails
 import com.example.gossip.appui.navigationdrawer.DrawerBodyData
 import com.example.gossip.appui.navigationdrawer.DrawerHeaderData
 import com.example.gossip.appui.navigationdrawer.MenuRow
