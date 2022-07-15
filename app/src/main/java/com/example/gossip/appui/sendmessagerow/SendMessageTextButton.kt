@@ -1,10 +1,12 @@
 package com.example.gossip.appui.sendmessagerow
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -42,13 +44,6 @@ fun SendMessageTextButton(
 ) {
 
     var text by remember{ mutableStateOf("") }
-    val scrollState = rememberScrollState()
-
-    val wasKeyboardVisible = remember{ mutableStateOf(false)}
-    val lastVisibleItemIndex = remember{ mutableStateOf(0)}
-    val listItemAbsoluteSizeList = remember { (1..messageDetailsList.size).map { 0 }.toMutableList()}
-
-    rememberIsKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible, lastVisibleItemIndex, listItemAbsoluteSizeList)
 
     val trailingIconView = @Composable {
         IconButton(onClick = {
@@ -61,10 +56,7 @@ fun SendMessageTextButton(
                     messageString = text
                 )
             messageDetailsList.add(currentMessageDetails)
-            scope.launch {
-                listScrollStateHolder.animateScrollToItem(messageDetailsList.size-1)
-                listItemAbsoluteSizeList.add(listScrollStateHolder.layoutInfo.visibleItemsInfo[listScrollStateHolder.layoutInfo.visibleItemsInfo.size-1].size)
-            }
+            scope.launch { listScrollStateHolder.animateScrollToItem(messageDetailsList.size-1) }
             text = ""
         }) {
             Icon(
@@ -80,6 +72,7 @@ fun SendMessageTextButton(
         backgroundColor = MaterialTheme.colors.secondary.copy(alpha = 0.4f)
     )
 
+    val scrollState = rememberScrollState()
     CompositionLocalProvider(values = arrayOf(LocalTextSelectionColors provides customTextSelectionColors)) {
         TextField(modifier = modifier
             .verticalScroll(state = scrollState, enabled = true)
@@ -100,63 +93,72 @@ fun SendMessageTextButton(
                 cursorColor = MaterialTheme.colors.onPrimary, focusedLabelColor = Color.Transparent),
             trailingIcon = if (text.isNotBlank()) trailingIconView else null
         )
-
     }
+
+    SyncLazyColumnScroll(scope, listScrollStateHolder)
 }
 
-fun View.isKeyboardOpen(
+
+@Composable
+fun SyncLazyColumnScroll(
     scope: CoroutineScope,
-    listScrollStateHolder: LazyListState,
-    isKeyboardVisibleBefore: MutableState<Boolean>,
-    lastVisibleItemIndex: MutableState<Int>,
-    listItemAbsoluteSizeList: MutableList<Int>
-): Boolean {
+    listScrollStateHolder: LazyListState
+) {
+    val isKeyboardOpen by rememberIsKeyboardOpen()
+    var hasKeyboardOpenedOnce by remember { mutableStateOf(false) }
+    val lazyListLayoutInfo = listScrollStateHolder.layoutInfo
+    val onScreenVisibleItemList = lazyListLayoutInfo.visibleItemsInfo
+    var prevScreenSize by remember { mutableStateOf(0)}
+    var lastVisibleItemIndex by remember { mutableStateOf(0)}
+    var lastVisibleItemOffset by remember { mutableStateOf(0)}
+
+    if(onScreenVisibleItemList.isNotEmpty()){
+
+        if (lazyListLayoutInfo.viewportEndOffset > prevScreenSize)
+            prevScreenSize = lazyListLayoutInfo.viewportEndOffset
+
+        //1. find last visible items offset from bottom in keyboard open state and -> implemented from line 131, 132
+        //2. find the same items offset after keyboard invisible -> implemented from line 136 to 142
+        //The difference between these two (2 - 1) is the net list scroll offset
+
+    }
+
+    if(isKeyboardOpen){
+        val scrollOffset = prevScreenSize-listScrollStateHolder.layoutInfo.viewportEndOffset
+        LaunchedEffect(key1 = isKeyboardOpen){
+            scope.launch { listScrollStateHolder.animateScrollBy(scrollOffset.toFloat())}
+        }
+        lastVisibleItemIndex = onScreenVisibleItemList[onScreenVisibleItemList.size-1].index
+        lastVisibleItemOffset = lazyListLayoutInfo.viewportEndOffset - onScreenVisibleItemList[onScreenVisibleItemList.size-1].offset
+        hasKeyboardOpenedOnce = true
+    } else {
+        if(hasKeyboardOpenedOnce) {
+            var prevItemOffset = 0
+            for (i in onScreenVisibleItemList){ if(i.index == lastVisibleItemIndex) { prevItemOffset = i.offset; break } }
+            val currentScrollOffset = lazyListLayoutInfo.viewportEndOffset - prevItemOffset
+            LaunchedEffect(key1 = isKeyboardOpen){
+                scope.launch { listScrollStateHolder.scrollBy((lastVisibleItemOffset - currentScrollOffset).toFloat()) }
+            }
+        }
+        hasKeyboardOpenedOnce = false
+    }
+
+}
+
+fun View.getKeyboardHeight(): Int {
     val rect = Rect()
     getWindowVisibleDisplayFrame(rect)
     val screenHeight = rootView.height
-    val absoluteKeyboardHeight = if (rect.bottom > 0) screenHeight - rect.bottom else 0
-    val visibleItemList = listScrollStateHolder.layoutInfo.visibleItemsInfo
-    if(visibleItemList.isNotEmpty()){
-        if(absoluteKeyboardHeight > 100){
-            if (!isKeyboardVisibleBefore.value){
-                scope.launch { listScrollStateHolder.scrollBy(absoluteKeyboardHeight.toFloat()) }
-                isKeyboardVisibleBefore.value = true
-            }
-            lastVisibleItemIndex.value = visibleItemList[visibleItemList.size-1].index
-            if (lastVisibleItemIndex.value < visibleItemList.size)
-                listItemAbsoluteSizeList[visibleItemList[visibleItemList.size-1].index] = visibleItemList[visibleItemList.size-1].size
-        } else {
-            if (isKeyboardVisibleBefore.value) {
-                var scrollOffset = 0
-                var i = listScrollStateHolder.layoutInfo.totalItemsCount - 1
-                while (i > lastVisibleItemIndex.value){
-                    scrollOffset += listItemAbsoluteSizeList[i]
-                    i -= 1
-                }
-                scope.launch {listScrollStateHolder.scrollBy(-scrollOffset.toFloat())}
-                isKeyboardVisibleBefore.value = false
-            }
-        }
-    }
-
-    return absoluteKeyboardHeight > screenHeight * 0.15
+    return if (rect.bottom > 0) screenHeight - rect.bottom else 0
 }
 
 @Composable
-fun rememberIsKeyboardOpen(
-    scope: CoroutineScope,
-    listScrollStateHolder: LazyListState,
-    wasKeyboardVisible: MutableState<Boolean>,
-    lastVisibleItemIndex: MutableState<Int>,
-    listItemAbsoluteSizeList: MutableList<Int>
-): State<Boolean> {
+fun rememberIsKeyboardOpen(): State<Boolean> {
     val view = LocalView.current
 
-    return produceState(initialValue = view.isKeyboardOpen(scope, listScrollStateHolder, wasKeyboardVisible,
-        lastVisibleItemIndex, listItemAbsoluteSizeList)) {
+    return produceState(initialValue = view.getKeyboardHeight() > view.rootView.height * .15) {
         val viewTreeObserver = view.viewTreeObserver
-        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.isKeyboardOpen(scope, listScrollStateHolder,
-            wasKeyboardVisible, lastVisibleItemIndex, listItemAbsoluteSizeList) }
+        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.getKeyboardHeight() > view.rootView.height * .15}
         viewTreeObserver.addOnGlobalLayoutListener(listener)
 
         awaitDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener)  }
