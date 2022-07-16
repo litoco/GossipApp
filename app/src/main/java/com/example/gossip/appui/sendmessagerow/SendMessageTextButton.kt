@@ -1,13 +1,12 @@
 package com.example.gossip.appui.sendmessagerow
 
-import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Rect
 import android.view.View
 import android.view.ViewTreeObserver
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -105,42 +104,44 @@ fun SyncLazyColumnScroll(
     listScrollStateHolder: LazyListState
 ) {
     val isKeyboardOpen by rememberIsKeyboardOpen()
-    var hasKeyboardOpenedOnce by remember { mutableStateOf(false) }
-    val lazyListLayoutInfo = listScrollStateHolder.layoutInfo
-    val onScreenVisibleItemList = lazyListLayoutInfo.visibleItemsInfo
     var prevScreenSize by remember { mutableStateOf(0)}
     var lastVisibleItemIndex by remember { mutableStateOf(0)}
     var lastVisibleItemOffset by remember { mutableStateOf(0)}
+    var hasScrolledOnce by remember { mutableStateOf(false)}
 
-    if(onScreenVisibleItemList.isNotEmpty()){
 
-        if (lazyListLayoutInfo.viewportEndOffset > prevScreenSize)
-            prevScreenSize = lazyListLayoutInfo.viewportEndOffset
-
-        //1. find last visible items offset from bottom in keyboard open state and -> implemented from line 131, 132
-        //2. find the same items offset after keyboard invisible -> implemented from line 136 to 142
-        //The difference between these two (2 - 1) is the net list scroll offset
-
-    }
-
-    if(isKeyboardOpen){
-        val scrollOffset = prevScreenSize-listScrollStateHolder.layoutInfo.viewportEndOffset
-        LaunchedEffect(key1 = isKeyboardOpen){
-            scope.launch { listScrollStateHolder.animateScrollBy(scrollOffset.toFloat())}
-        }
-        lastVisibleItemIndex = onScreenVisibleItemList[onScreenVisibleItemList.size-1].index
-        lastVisibleItemOffset = lazyListLayoutInfo.viewportEndOffset - onScreenVisibleItemList[onScreenVisibleItemList.size-1].offset
-        hasKeyboardOpenedOnce = true
-    } else {
-        if(hasKeyboardOpenedOnce) {
-            var prevItemOffset = 0
-            for (i in onScreenVisibleItemList){ if(i.index == lastVisibleItemIndex) { prevItemOffset = i.offset; break } }
-            val currentScrollOffset = lazyListLayoutInfo.viewportEndOffset - prevItemOffset
-            LaunchedEffect(key1 = isKeyboardOpen){
-                scope.launch { listScrollStateHolder.scrollBy((lastVisibleItemOffset - currentScrollOffset).toFloat()) }
+    //Add the above if else code inside one "LaunchedEffect" block
+    LaunchedEffect(key1 = isKeyboardOpen, key2 = listScrollStateHolder.isScrollInProgress){
+        if (listScrollStateHolder.layoutInfo.viewportEndOffset > prevScreenSize)
+            prevScreenSize = listScrollStateHolder.layoutInfo.viewportEndOffset
+        if (listScrollStateHolder.layoutInfo.visibleItemsInfo.isNotEmpty()) {
+            if (isKeyboardOpen) {
+                if (!listScrollStateHolder.isScrollInProgress && !hasScrolledOnce) {
+                    val size = listScrollStateHolder.layoutInfo.viewportEndOffset
+                    scope.launch { listScrollStateHolder.animateScrollBy((prevScreenSize - size).toFloat()) }
+                    hasScrolledOnce = true
+                }
+                lastVisibleItemIndex = listScrollStateHolder.layoutInfo.visibleItemsInfo[listScrollStateHolder.layoutInfo.visibleItemsInfo.size - 1].index
+                lastVisibleItemOffset = listScrollStateHolder.layoutInfo.viewportEndOffset - listScrollStateHolder.layoutInfo.visibleItemsInfo[listScrollStateHolder.layoutInfo.visibleItemsInfo.size - 1].offset
+            } else {
+                if (!listScrollStateHolder.isScrollInProgress) {
+                    var itemDetails:LazyListItemInfo? = null
+                    for (item in listScrollStateHolder.layoutInfo.visibleItemsInfo){
+                        if (item.index == lastVisibleItemIndex){
+                            itemDetails = item
+                            break
+                        }
+                    }
+                    if (itemDetails != null){
+                        val lastItemCurrentOffset = (listScrollStateHolder.layoutInfo.viewportEndOffset - itemDetails.offset) - lastVisibleItemOffset
+                        if (hasScrolledOnce){
+                            scope.launch { listScrollStateHolder.animateScrollBy(-lastItemCurrentOffset.toFloat()) }
+                        }
+                    }
+                    hasScrolledOnce = false
+                }
             }
         }
-        hasKeyboardOpenedOnce = false
     }
 
 }
