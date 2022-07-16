@@ -109,8 +109,12 @@ fun SyncLazyColumnScroll(
     var lastVisibleItemOffset by remember { mutableStateOf(0)}
     var hasScrolledOnce by remember { mutableStateOf(false)}
 
+    // This is a fix
+    // To sync keyboard with LazyColumn,
+    // 1. we calculated keyboard height on keyboard visibility and scroll lazy column by its height
+    // 2. we calculated the distance between the last visible items top and keyboards top (when keyboard becomes visible) and
+    //    maintained this distance when the keyboard became invisible
 
-    //Add the above if else code inside one "LaunchedEffect" block
     LaunchedEffect(key1 = isKeyboardOpen, key2 = listScrollStateHolder.isScrollInProgress){
         if (listScrollStateHolder.layoutInfo.viewportEndOffset > prevScreenSize)
             prevScreenSize = listScrollStateHolder.layoutInfo.viewportEndOffset
