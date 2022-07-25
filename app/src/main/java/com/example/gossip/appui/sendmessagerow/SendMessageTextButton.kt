@@ -150,20 +150,21 @@ fun SyncLazyColumnScroll(
 
 }
 
-fun View.getKeyboardHeight(): Int {
+fun View.getKeyboardHeight(): Boolean {
     val rect = Rect()
     getWindowVisibleDisplayFrame(rect)
     val screenHeight = rootView.height
-    return if (rect.bottom > 0) screenHeight - rect.bottom else 0
+    val absoluteKeyboardHeight = screenHeight - rect.bottom
+    return if (rect.bottom > 0) absoluteKeyboardHeight > screenHeight * .15 else false
 }
 
 @Composable
 fun rememberIsKeyboardOpen(): State<Boolean> {
     val view = LocalView.current
 
-    return produceState(initialValue = view.getKeyboardHeight() > view.rootView.height * .15) {
+    return produceState(initialValue = view.getKeyboardHeight()) {
         val viewTreeObserver = view.viewTreeObserver
-        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.getKeyboardHeight() > view.rootView.height * .15}
+        val listener = ViewTreeObserver.OnGlobalLayoutListener { value = view.getKeyboardHeight()}
         viewTreeObserver.addOnGlobalLayoutListener(listener)
 
         awaitDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener)  }
